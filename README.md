@@ -322,6 +322,18 @@ server {
     listen 80;
     server_name 你的域名.com;
 
+    # gzip 压缩（减少 60-80% 带宽）
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript text/xml;
+    gzip_min_length 1024;
+
+    # 静态资源缓存（减少重复传输）
+    location /static/ {
+        proxy_pass http://127.0.0.1:8080;
+        expires 1d;
+        add_header Cache-Control "public, max-age=86400";
+    }
+
     location / {
         proxy_pass http://127.0.0.1:8080;
         proxy_http_version 1.1;
@@ -333,6 +345,8 @@ server {
 }
 ```
 
+> 💡 **gzip 压缩和静态资源缓存均在 Nginx 层处理**，程序本身不重复处理，性能最优。
+
 ### 🔒 安全建议
 
 1. **立即修改管理员密码**（首次启动后第一件事）
@@ -342,7 +356,7 @@ server {
 
 ### 🗄️ 数据库说明（数据字典）
 
-数据库为 SQLite 单文件，路径默认 `./data/jh.db`，**程序首次启动时自动创建，无需手动操作**。共 **30 张表**，下表列出每张表的用途、关键字段及初始化时的处理方式。
+数据库为 SQLite 单文件，路径默认 `./data/jh.db`，**程序首次启动时自动创建，无需手动操作**。共 **29 张表**，下表列出每张表的用途、关键字段及初始化时的处理方式。
 
 | 表名                  | 用途说明                   | 关键字段                                                                                                    |          江湖初始化时          |
 | --------------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------- | :----------------------------: |
@@ -363,7 +377,6 @@ server {
 | `casino_bets`         | 赌场下注记录               | user_id、bet_type 玩法、amount 金额、win 是否赢、win_amount 赢得金额                                        |            **清空**            |
 | `horse_races`         | 赛马场次                   | status pending/running/finished、winner_id 获胜马ID                                                         |            **清空**            |
 | `horse_race_horses`   | 赛马参赛马匹               | race_id、name 马名、odds 赔率、speed/stamina 属性、finish_pos 名次                                          |            **清空**            |
-| `chat_logs`           | 聊天记录                   | room_id、username、content、msg_type 消息类型                                                               |            **清空**            |
 | `messages`            | 飞鸽传书（私信）           | from_user、to_user、content、is_read 已读标志                                                               |            **清空**            |
 | `bbs_posts`           | 论坛帖子                   | user_id、title、content、views 浏览数                                                                       |            **清空**            |
 | `bbs_replies`         | 论坛回帖                   | post_id、user_id、content                                                                                   |            **清空**            |
@@ -386,6 +399,18 @@ server {
 ### 🧮 技术说明
 
 Go 版每个 WebSocket 连接仅消耗约 **20-50KB 内存**，每次数据库查询约 **0.5-2ms**。消息广播采用**房间索引**，仅向目标房间内的连接推送，CPU 不随总在线人数线性增长。得益于 Go 的协程模型，**千人并发对服务器几乎没有压力**。
+
+**高性能架构设计（开箱即用）：**
+
+| 特性 | 说明 |
+|------|------|
+| 广播消息预序列化 | 同一条消息只序列化一次，N 个连接共享同一份数据 |
+| WebSocket 批量写入 | 消息合并发送，减少系统调用 |
+| Session O(1) 查找 | 反向索引，万人在线认证性能不衰减 |
+| NPC 数据内存缓存 | 热数据常驻内存，无重复数据库查询 |
+| 自动内存回收 | 过期缓存定时清理，长期运行内存稳定 |
+| WebSocket 消息限流 | 防止恶意客户端耗尽服务端资源 |
+| pprof 性能监控 | 管理员可随时分析 CPU/内存状况 |
 
 ### 📊 配置推荐对照表
 
