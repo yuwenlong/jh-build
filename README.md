@@ -194,6 +194,64 @@ _是时候换一个真正扛得住的江湖了！_
 
 - 撰写个人日记，记录江湖生涯
 
+### 🎵 歌曲/点歌系统
+
+- 歌曲库浏览、创建/编辑/删除
+- 歌曲审批（管理员审核）
+- 点歌/献花互动，支持跨房间赠送
+
+### 💬 站内即时通讯 (WebICQ)
+
+- 好友添加/接受/拒绝/删除
+- 实时私聊消息，支持多会话
+- 最近聊天列表、未读消息计数
+
+### ⚡ 绝招系统
+
+- 绝招列表浏览、按门派/等级解锁
+- 学习/遗忘绝招
+- 释放绝招（带冷却时间），消耗内力
+
+### 🎭 秀场系统
+
+- 玩家展示物品管理（上架/下架）
+- 秀场页面浏览，展示玩家珍藏
+
+### 🏨 酒店系统
+
+- 酒店房间列表，不同等级与价格
+- 入住/退房操作，限时住宿
+
+### 🍶 酒楼酒席系统
+
+- 9 种酒席类型（一对一请 300 两 ~ 十全十美 15000 两），座位 2~10 人
+- 东道主开席花钱请客，入席者恢复体力 + 内力
+- 酒席类型分同性、情侣、朋友、开放四类，不同类型入席规则不同
+- 聊天室 WebSocket 暖色广播（开席/入席/散席通知）
+- 管理后台可修改酒席价格、恢复量、人数上限
+
+### 🏠 房产系统
+
+- 购买/升级/出售房产
+- 房产属性与等级，提升玩家实力
+
+### 🎉 活动系统
+
+- 限时活动列表浏览
+- 参与/退出活动
+- 活动奖励领取
+
+### 🎁 奖励系统
+
+- 可领取奖励列表
+- 一键领取奖励
+
+### 📋 任务系统
+
+- 每日/成就任务
+- 任务进度追踪
+- 任务奖励领取
+
 ### 💎 VIP 会员（站长赚钱利器）
 
 | VIP 等级 | 权益                                                       |
@@ -218,6 +276,7 @@ _是时候换一个真正扛得住的江湖了！_
 - **VIP 等级管理**：新增/修改/删除 VIP 等级及权益配置，直接影响游戏倍率计算；**管理员设置用户 VIP 后服务端立即生效，用户无需重新登录**
 - **脏词管理**：在线添加/删除违禁词，即时生效无需重启；覆盖聊天/注册/论坛/飞鸽/日记/门派武功；管理等级≥9豁免过滤
 - 系统设置持久化（后台管理界面修改，实时生效，重启自动恢复）
+- **酒席管理**：查看/修改酒席类型（价格、恢复量、人数上限），查看/删除活跃酒席
 - 江湖数据初始化（清空所有玩家数据、聊天/赌场/签到/公告等记录，重置VIP等级和脏词为默认；**初始化完成后清除全部 Session，所有账号全删，自动重建 admin/admin123 站长账号，强制重新登录**）
 
 ### ❓ 帮助中心
@@ -356,7 +415,7 @@ server {
 
 ### 🗄️ 数据库说明（数据字典）
 
-数据库为 SQLite 单文件，路径默认 `./data/jh.db`，**程序首次启动时自动创建，无需手动操作**。共 **29 张表**，下表列出每张表的用途、关键字段及初始化时的处理方式。
+数据库为 SQLite 单文件，路径默认 `./data/jh.db`，**程序首次启动时自动创建，无需手动操作**。共 **50 张表**，下表列出每张表的用途、关键字段及初始化时的处理方式。
 
 | 表名                  | 用途说明                   | 关键字段                                                                                                    |          江湖初始化时          |
 | --------------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------- | :----------------------------: |
@@ -365,7 +424,7 @@ server {
 | `factions`            | 门派信息                   | name 门派名、leader 掌门、gold 金库、power 势力值、faction_level 等级                                       |            **清空**            |
 | `faction_skills`      | 门派专属武功配置           | faction_id、name 武功名、damage 伤害、mana_cost 消耗                                                        |            **清空**            |
 | `item_defs`           | 物品定义（武器/药品/道具） | name、category 分类、price 价格、attack/defense/hp_restore 属性                                             |            **保留**            |
-| `skill_defs`          | 通用武功技能定义           | name、damage、mana_cost、level_req、faction 专属门派                                                        |            **保留**            |
+| `skill_defs`          | 通用武功技能定义           | name、damage、mana_cost、level_req、faction 专属门派、price 商店售价                                                   |            **保留**            |
 | `actions`             | 聊天表情/动作定义          | name 命令词、self_text 无目标文本、target_text 有目标文本                                                   |            **保留**            |
 | `npc_defs`            | NPC 角色定义               | name、phrases 对话词条(JSON)、active_hours 活跃时段、room_id 出现房间                                       |            **保留**            |
 | `marriages`           | 玩家婚姻关系               | husband 夫方、wife 妻方、status married/divorced                                                            |            **清空**            |
@@ -389,6 +448,27 @@ server {
 | `settings`            | 系统配置持久化             | key 配置项、value 配置值（站点名称/游戏参数等）                                                             |  **保留（仅清利息领取记录）**  |
 | `vip_levels`          | VIP 等级定义（后台可改）   | level 0-5、name、multiplier 倍率、interest_rate 日利率、can_laba 喇叭权限                                   |       **重置为默认6级**        |
 | `bad_words`           | 脏词库（内存 Trie 过滤）   | word 脏词（唯一）                                                                                           |       **重置为内置词库**       |
+| `songs`               | 歌曲库                     | name 歌名、singer 歌手、url 链接、status 审核状态                                                          |            **清空**            |
+| `dedications`         | 献歌记录                   | song_id 歌曲ID、from_user 赠送人、to_user 接收人、message 祝福语                                           |            **清空**            |
+| `friends`             | 好友关系                   | user_id、friend_id、status 待确认/已接受                                                                   |            **清空**            |
+| `private_messages`    | 站内即时通讯               | from_user、to_user、content、is_read                                                                       |            **清空**            |
+| `stunts`              | 绝招定义                   | name 绝招名、damage 伤害、cooldown 冷却、level_req 等级要求                                                |            **保留**            |
+| `user_stunts`         | 玩家已学绝招               | user_id、stunt_id                                                                                          |            **清空**            |
+| `stunt_cooldowns`     | 绝招冷却记录               | user_id、stunt_id、cooldown_until 冷却截止                                                                 |            **清空**            |
+| `show_items`          | 秀场展示物品               | user_id、item_type 类型、item_data 数据、is_active 展示状态                                                |            **清空**            |
+| `hotel_rooms`         | 酒店房间                   | name 房名、price 价格、duration 时长                                                                       |            **保留**            |
+| `hotel_stays`         | 入住记录                   | user_id、room_id、start_time/end_time、status 状态                                                         |            **清空**            |
+| `banquet_types`       | 酒席类型定义               | name 酒席名、type 类型、price 价格、hp_restore 恢复体力、mp_restore 恢复内力、max_guests 座位数              |       **重置为默认9种**       |
+| `banquet_halls`       | 活跃酒席                   | owner_id 东道主、type_name 类型名、target_name 指定受邀人、current_guests 当前人数、status 状态              |            **清空**            |
+| `banquet_guests`      | 入席记录                   | hall_id 酒席ID、user_id 用户ID、user_name 用户名                                                           |            **清空**            |
+| `properties`          | 玩家房产                   | user_id、name 房名、property_type 类型、level 等级、value 价值                                             |            **清空**            |
+| `activities`          | 活动定义                   | name 活动名、start_time/end_time 时间段、reward_type 奖励类型、max_players 人数上限                        |            **保留**            |
+| `activity_participants`| 活动参与者                 | activity_id、user_id、status 状态、reward_claimed 奖励已领                                                 |            **清空**            |
+| `rewards`             | 奖励定义                   | name 奖励名、reward_type 奖励类型、requirements 领取条件                                                   |            **保留**            |
+| `user_rewards`        | 玩家已领奖励               | user_id、reward_id                                                                                         |            **清空**            |
+| `vip_benefits`        | VIP 权益定义               | vip_level 等级、benefit_type 权益类型、benefit_data 权益数据                                               |            **清空**            |
+| `user_tasks`          | 玩家任务                   | user_id、task_type 任务类型、progress 进度、target 目标、completed 完成                                     |            **清空**            |
+| `marquees`            | 跑马灯字幕                 | content 内容、speed 速度、is_active 启用                                                                   |            **清空**            |
 
 > 💡 **备份建议**：只需定期备份 `data/jh.db` 一个文件，即可完整恢复所有数据（玩家、配置、日志全部在内）。
 
